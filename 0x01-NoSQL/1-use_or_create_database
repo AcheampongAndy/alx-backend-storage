@@ -1,0 +1,2 @@
+// create new db called my_db or open existing with name
+use my_db
