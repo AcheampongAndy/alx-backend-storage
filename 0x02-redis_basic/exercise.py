@@ -10,38 +10,31 @@ from functools import wraps
 
 def count_calls(method: Callable) -> Callable:
     """
-    Read the documentation for clarity
-     decorator that takes a single method 
+    A decorator that counts the number of calls to a method.
     """
-
-   ''' As a key, use the qualified name of method 
-    using the __qualname__ dunder method '''
-    
     key = method.__qualname__
 
     @wraps(method)
     def wrapper(self, *args, **kwds):
-        """wrapper for decorated function"""
-        self._radis.incr(key)
+        """Wrapper for decorated function."""
+        self._redis.incr(key)
         return method(self, *args, **kwds)
 
     return wrapper
 
 
 def call_history(method: Callable) -> Callable:
-    """store the history of inputs and outputs"""
+    """Store the history of inputs and outputs."""
     @wraps(method)
     def wrapper(self, *args, **kwargs):
-        """wrapper for the decorated function"""
-        input = str(args)
-        self._redis.rpush(method.__qualname__ + ":inputs", input)
+        """Wrapper for the decorated function."""
+        input_data = str(args)
+        self._redis.rpush(method.__qualname__ + ":inputs", input_data)
         output = str(method(self, *args, **kwargs))
         self._redis.rpush(method.__qualname__ + ":outputs", output)
         return output
 
     return wrapper
-
-
 
 
 class Cache:
@@ -98,11 +91,12 @@ class Cache:
             key (str): The key to retrieve the data from Redis.
 
         Returns:
-            The data converted to a string
+            str: The data converted to a string.
         """
         value = self._redis.get(key)
-        value = value.decode('utf-8')
-        return value
+        if value is None:
+            return ""
+        return value.decode('utf-8')
 
     def get_int(self, key: str) -> int:
         """
@@ -112,12 +106,12 @@ class Cache:
             key (str): The key to retrieve the data from Redis.
 
         Returns:
-            The data converted to an integer
+            int: The data converted to an integer.
         """
         value = self._redis.get(key)
+        if value is None:
+            return 0
         try:
-            value = int(value.decode('utf-8'))
-        except Exception:
-            value = 0
-
-        return value
+            return int(value.decode('utf-8'))
+        except ValueError:
+            return 0
