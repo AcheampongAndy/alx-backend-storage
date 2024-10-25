@@ -38,6 +38,7 @@ class Cache:
         self._redis = radis.Redis()
         self._redis.flushdb()
 
+    @count_calls
     def store(self, data: Union[str, bytes, int, float]) -> str:
         """
         Stores data in Redis using a randomly generated key.
