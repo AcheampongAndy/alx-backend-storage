@@ -15,7 +15,8 @@ def count_calls(method: Callable) -> Callable:
     """
 
    ''' As a key, use the qualified name of method 
-    using the __qualname__ dunder method'''
+    using the __qualname__ dunder method '''
+    
     key = method.__qualname__
 
     @wraps(method)
@@ -53,7 +54,7 @@ class Cache:
         Initializes a new Cache instance, connecting to a Redis server.
         The Redis database is flushed upon initialization.
         """
-        self._redis = radis.Redis()
+        self._redis = redis.Redis()
         self._redis.flushdb()
 
     @count_calls
@@ -69,7 +70,7 @@ class Cache:
             str: The randomly generated key for retrieving the stored data.
         """
         key = str(uuid.uuid4())
-        self._radis.set(key, data)
+        self._redis.set(key, data)
         return key
 
     def get(self, key: str, 
@@ -84,7 +85,7 @@ class Cache:
         Returns:
             Union[str, bytes, int, float, None]: The retrieved data, optionally converted.
         """
-        value = self._radis.get(key)
+        value = self._redis.get(key)
         if fn:
             value = fn(value)
         return value
@@ -99,7 +100,7 @@ class Cache:
         Returns:
             The data converted to a string
         """
-        value = self._radis.get(key)
+        value = self._redis.get(key)
         value = value.decode('utf-8')
         return value
 
@@ -113,11 +114,10 @@ class Cache:
         Returns:
             The data converted to an integer
         """
-        value = self._radis.get(key)
+        value = self._redis.get(key)
         try:
             value = int(value.decode('utf-8'))
         except Exception:
             value = 0
 
         return value
-
