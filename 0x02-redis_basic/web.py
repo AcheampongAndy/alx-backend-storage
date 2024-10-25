@@ -1,43 +1,48 @@
 #!/usr/bin/env python3
 """
-Implementing an expiring web cache and tracker
+Module for retrieving web pages and caching results in Redis.
 """
 
-
-import redis
 import requests
+import redis
+import time
 from functools import wraps
 
-r = redis.Redis()
 
+redis_client = redis.Redis()
 
-def url_access_count(method):
-    """decorator for get_page function"""
+def cache_page(method):
+    """Decorator to cache page content and track access count."""
     @wraps(method)
-    def wrapper(url):
-        """wrapper function"""
-        key = "cached:" + url
-        cached_value = r.get(key)
-        if cached_value:
-            return cached_value.decode("utf-8")
+    def wrapper(url: str) -> str:
+        count_key = f"count:{url}"
+        cached_content = redis_client.get(url)
 
-            # Get new content and update cache
-        key_count = "count:" + url
-        html_content = method(url)
+        if cached_content:
+            redis_client.incr(count_key)
+            return cached_content.decode('utf-8')
 
-        r.incr(key_count)
-        r.set(key, html_content, ex=10)
-        r.expire(key, 10)
-        return html_content
+        content = method(url)
+        
+        redis_client.setex(url, 10, content)
+
+        redis_client.incr(count_key)
+
+        return content
+
     return wrapper
 
-
-@url_access_count
+@cache_page
 def get_page(url: str) -> str:
-    """obtain the HTML content of a particular"""
-    results = requests.get(url)
-    return results.text
+    """
+    Fetches the HTML content of the given URL.
 
+    Args:
+        url (str): The URL to fetch.
 
-if __name__ == "__main__":
-    get_page('http://slowwly.robertomurray.co.uk')
+    Returns:
+        str: The HTML content of the page.
+    """
+    response = requests.get(url)
+    response.raise_for_status() 
+    return response.text
